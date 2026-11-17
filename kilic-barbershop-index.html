@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111111"><title>KILIÇ BARBERSHOP | Online Randevu</title>
+<style>
+:root{color-scheme:dark;--bg:#101112;--panel:#1a1b1d;--muted:#a5a5a5;--gold:#c9ad78;--line:#343434}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#252321 0,#101112 55%);color:#f5f3ef;font-family:Arial,Helvetica,sans-serif;min-height:100vh}.wrap{max-width:760px;margin:auto;padding:28px 18px 50px}.brand{text-align:center;padding:28px 12px 22px}.mark{font-family:Georgia,serif;font-size:54px;color:var(--gold);line-height:1}.brand h1{font-family:Georgia,serif;letter-spacing:4px;font-size:25px;margin:12px 0 6px}.brand p{letter-spacing:3px;color:var(--gold);font-size:11px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:16px}.card{background:rgba(26,27,29,.96);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:16px;box-shadow:0 12px 36px #0005}h2{font-size:17px;margin:0 0 18px;letter-spacing:1px;color:var(--gold)}.field{margin:0 0 16px}label{display:block;font-size:12px;color:#c9c5bd;margin-bottom:7px}input,select{width:100%;padding:14px 13px;background:#101112;color:#f5f3ef;border:1px solid #444;border-radius:9px;font-size:15px;outline:none}input:focus,select:focus{border-color:var(--gold)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hint{color:var(--muted);font-size:12px;line-height:1.5}.btn{width:100%;border:0;border-radius:9px;background:var(--gold);color:#171513;padding:15px;font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer}.btn:disabled{opacity:.55;cursor:wait}.status{margin-top:14px;padding:12px;border-radius:9px;font-size:13px;line-height:1.5;display:none}.status.show{display:block}.status.ok{background:#183126;border:1px solid #35694d;color:#c9f2d8}.status.err{background:#3a2020;border:1px solid #744040;color:#ffd4d4}.foot{text-align:center;color:#777;font-size:11px;margin:22px 0}.price{color:var(--gold)}@media(max-width:520px){.grid{grid-template-columns:1fr}.card{padding:18px}.brand h1{font-size:21px}}
+</style></head>
+<body><main class="wrap">
+<header class="brand"><div class="mark">K</div><h1>KILIÇ BARBERSHOP</h1><p>HOUSE OF SELECTED</p><div class="sub">LOOK GOOD – FEEL GOOD<br>Online Randevu Sistemi</div></header>
+<section class="card"><h2>RANDEVUNU OLUŞTUR</h2>
+<div class="field"><label for="service">Hizmet seç</label><select id="service"><option value="">Hizmet seçiniz</option></select></div>
+<div class="field"><label for="barber">Berberini seç</label><select id="barber"><option value="">Berber seçiniz</option></select></div>
+<div class="grid"><div class="field"><label for="date">Tarih</label><input id="date" type="date"></div><div class="field"><label for="time">Saat</label><select id="time" disabled><option value="">Önce tarih ve berber seçin</option></select></div></div>
+<div class="field"><label for="customer">Ad soyad</label><input id="customer" type="text" maxlength="100" placeholder="Adınız ve soyadınız" autocomplete="name" required></div>
+<div class="field"><label for="phone">Telefon numarası (zorunlu)</label><input id="phone" type="tel" maxlength="20" placeholder="05XX XXX XX XX" autocomplete="tel" required></div>
+<p class="hint">Çalışma saatleri: Pazartesi–Cumartesi, 10.00–23.00. Pazar kapalıdır. Randevular berberin uygunluğuna göre oluşturulur.</p>
+<button class="btn" id="book">RANDEVU AL</button><div id="status" class="status" role="status"></div>
+</section><div class="foot">KILIÇ BARBERSHOP · MANAVGAT</div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://trrspituarolojducqni.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_jvxdGG3AIOUHcLESN4n77g_8tHn-ne7';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);let services=[],barbers=[];
+const pad=n=>String(n).padStart(2,'0');const localDate=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function message(t,ok=false){$('status').textContent=t;$('status').className='status show '+(ok?'ok':'err')}
+function hide(){ $('status').className='status' }
+function selectedService(){return services.find(x=>x.id===$('service').value)}
+function selectedBarber(){return barbers.find(x=>x.id===$('barber').value)}
+function parseLocal(date,hour){return new Date(`${date}T${hour}:00:00`)}
+function overlaps(a,b,c,d){return a<d&&b>c}
+async function load(){
+ const [s,b]=await Promise.all([db.from('services').select('id,name,price,duration_minutes').eq('active',true).order('name'),db.from('barbers').select('id,name').eq('active',true).order('name')]);
+ if(s.error||b.error){message('Hizmetler yüklenemedi. Supabase bağlantı ayarlarını kontrol edin. '+(s.error?.message||b.error?.message));return}
+ services=s.data||[];barbers=b.data||[];
+ $('service').innerHTML='<option value="">Hizmet seçiniz</option>'+services.map(x=>`<option value="${x.id}">${x.name} – ${x.price} TL (${x.duration_minutes} dk)</option>`).join('');
+ $('barber').innerHTML='<option value="">Berber seçiniz</option>'+barbers.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+}
+async function slots(){hide();$('time').disabled=true;$('time').innerHTML='<option value="">Uygun saatler aranıyor…</option>';
+ const date=$('date').value,barber=selectedBarber(),svc=selectedService();if(!date||!barber||!svc){$('time').innerHTML='<option value="">Önce hizmet, berber ve tarih seçin</option>';return}
+ const day=new Date(date+'T12:00:00').getDay();if(day===0){$('time').innerHTML='<option value="">Pazar günü kapalıyız</option>';return}
+ const from=parseLocal(date,'10:00'),until=parseLocal(date,'23:00');
+ const {data,error}=await db.rpc('get_booked_slots',{p_barber_id:barber.id,p_from:from.toISOString(),p_until:until.toISOString()});
+ if(error){$('time').innerHTML='<option value="">Saatler yüklenemedi</option>';message('Uygun saatler alınamadı: '+error.message);return}
+ const busy=data||[],now=new Date(),options=[];
+ for(let h=10;h<=22;h++){const start=parseLocal(date,`${pad(h)}:00`),end=new Date(start.getTime()+svc.duration_minutes*60000);if(end>until||start<=now)continue;if(!busy.some(x=>overlaps(start.getTime(),end.getTime(),new Date(x.start_at).getTime(),new Date(x.end_at).getTime())))options.push(`${pad(h)}:00`)}
+ $('time').innerHTML=options.length?'<option value="">Saat seçiniz</option>'+options.map(x=>`<option value="${x}">${x}</option>`).join(''):'<option value="">Uygun saat yok</option>';$('time').disabled=!options.length;
+}
+['service','barber','date'].forEach(id=>$(id).addEventListener('change',slots));
+const minDate=localDate(new Date());$('date').min=minDate;
+$('book').addEventListener('click',async()=>{hide();const svc=selectedService(),barber=selectedBarber(),date=$('date').value,time=$('time').value,name=$('customer').value.trim(),phone=$('phone').value.trim();if(!svc||!barber||!date||!time||!name||!phone){message('Lütfen hizmet, berber, tarih, saat, ad soyad ve telefon alanlarının tamamını doldurun.');return}if(!/^\+?[0-9 ()-]{10,20}$/.test(phone)){message('Lütfen geçerli bir telefon numarası girin.');return}const start=parseLocal(date,time),end=new Date(start.getTime()+svc.duration_minutes*60000);if(start.getDay()===0){message('Pazar günü randevu alamıyoruz.');return}$('book').disabled=true;$('book').textContent='KAYDEDİLİYOR…';
+ try{const {error}=await db.from('appointments').insert({customer_name:name,customer_phone:phone,barber_id:barber.id,service_id:svc.id,start_at:start.toISOString(),end_at:end.toISOString(),status:'booked'});if(error){if(error.code==='23P01')throw new Error('Bu saat az önce doldu. Lütfen başka bir saat seçin.');throw error}message(`Randevu talebiniz kaydedildi. ${date} günü saat ${time} için ${barber.name} ile ${svc.name}. Teşekkür ederiz!`,true);$('time').value='';await slots()}catch(e){message('Randevu kaydedilemedi: '+e.message)}finally{$('book').disabled=false;$('book').textContent='RANDEVU AL'}
+});
+load();
+</script></body></html>
